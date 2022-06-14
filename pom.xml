@@ -73,6 +73,15 @@
     <dependencyManagement>
         <dependencies>
 
+            <!-- Runtime -->
+
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-bom</artifactId>
+                <version>1.9.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
             <!-- Tests -->
             <dependency>
@@ -102,7 +111,16 @@
 
     <dependencies>
 
+        <!-- Runtime -->
+
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Tests -->
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>

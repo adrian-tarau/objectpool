@@ -1,4 +1,4 @@
-package net.microfalx.binserde.objectpool;
+package net.microfalx.objectpool;
 
 /**
  * Holds a strategy used to return objects from pool.

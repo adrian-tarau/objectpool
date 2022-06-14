@@ -1,4 +1,4 @@
-package net.microfalx.binserde.objectpool;
+package net.microfalx.objectpool;
 
 import java.lang.reflect.Array;
 import java.util.Collection;

@@ -1,4 +1,4 @@
-package net.microfalx.binserde.objectpool;
+package net.microfalx.objectpool;
 
 /**
  * An enum which holdes the state of a pooled object.

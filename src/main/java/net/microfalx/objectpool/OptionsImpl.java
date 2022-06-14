@@ -1,23 +1,26 @@
-package net.microfalx.binserde.objectpool;
+package net.microfalx.objectpool;
 
 import java.time.Duration;
 import java.util.StringJoiner;
+
+import static java.time.Duration.ofMinutes;
+import static java.time.Duration.ofSeconds;
 
 /**
  * Implementation of {@link ObjectPool.Options}.
  *
  * @param <T> the type of pooled objects
  */
-class OptionsImpl<T> implements ObjectPool.Options<T> {
+final class OptionsImpl<T> implements ObjectPool.Options<T> {
 
     int minimum;
-    int maximum;
-    Duration timeToLiveTimeout;
-    Duration abandonedTimeout;
-    Duration inactiveTimeout;
-    Duration maximumWait;
-    Duration maximumReuseTime;
-    int maximumReuseCount;
+    int maximum = 10;
+    Duration timeToLiveTimeout = ofMinutes(60);
+    Duration abandonedTimeout = ofMinutes(60);
+    Duration inactiveTimeout = ofSeconds(60);
+    Duration maximumWait = ofSeconds(60);
+    Duration maximumReuseTime = ofMinutes(15);
+    int maximumReuseCount = Integer.MAX_VALUE;
     Strategy strategy = Strategy.LIFO;
     ObjectFactory<T> factory;
 
@@ -70,7 +73,6 @@ class OptionsImpl<T> implements ObjectPool.Options<T> {
     public ObjectFactory<T> getFactory() {
         return factory;
     }
-
 
 
     @Override

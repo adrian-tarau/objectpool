@@ -1,4 +1,4 @@
-package net.microfalx.binserde.objectpool;
+package net.microfalx.objectpool;
 
 /**
  * An exception for object pool failues.

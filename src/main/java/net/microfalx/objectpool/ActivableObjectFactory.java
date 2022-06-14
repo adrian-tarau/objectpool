@@ -1,4 +1,4 @@
-package net.microfalx.binserde.objectpool;
+package net.microfalx.objectpool;
 
 /**
  * An object pool which allows objects to be <code>activated</code> before they can be used.

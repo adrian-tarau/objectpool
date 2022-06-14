@@ -1,9 +1,7 @@
-package net.microfalx.binserde.objectpool;
+package net.microfalx.objectpool;
 
 import java.time.Duration;
 import java.util.Collection;
-
-import static net.microfalx.binserde.objectpool.ObjectPoolUtils.*;
 
 /**
  * An object pool.
@@ -42,7 +40,8 @@ public interface ObjectPool<T> {
     /**
      * Returns an instance to the pool.
      *
-     * @param object
+     * @param object the object borrowed from the pool
+     * @see #borrowObject()
      */
     void returnObject(T object);
 
@@ -94,6 +93,16 @@ public interface ObjectPool<T> {
 
     /**
      * Holds options for an object pool.
+     * <p>
+     * The default settings are:
+     * <ul>
+     * <li>0 minimum objects</li>
+     * <li>10 maximum objects</li>
+     * <li>60 minutes time to live and abandoned timeout</li>
+     * <li>60 seconds idle time</li>
+     * <li>60 seconds maximum wait time</li>
+     * <li>15 minutes reuse time</li>
+     * </ul>
      */
     interface Options<T> {
 
@@ -187,7 +196,6 @@ public interface ObjectPool<T> {
          * @return a non-null instance
          */
         ObjectFactory<T> getFactory();
-
     }
 
     /**
@@ -197,58 +205,126 @@ public interface ObjectPool<T> {
      */
     class Builder<T> {
 
-        private OptionsImpl options;
+        private OptionsImpl<T> options;
 
         private Builder(ObjectFactory<T> factory) {
-            options.factory = requireNonNull(factory);
+            options.factory = ObjectPoolUtils.requireNonNull(factory);
         }
 
+        /**
+         * Changes the minimum number of objects.
+         *
+         * @param minimum the minimum number of objects
+         * @return self
+         * @see Options#getMinimum()
+         */
         public Builder<T> minimum(int minimum) {
-            options.minimum = requireBounded(minimum, 0, MAXIMUM_POOL_SIZE);
+            options.minimum = ObjectPoolUtils.requireBounded(minimum, 0, ObjectPoolUtils.MAXIMUM_POOL_SIZE);
             return this;
         }
 
+        /**
+         * Changes the maximum number of objects.
+         *
+         * @param maximum the maximum number of objects
+         * @return self
+         * @see Options#getMaximum()
+         */
         public Builder<T> maximum(int maximum) {
-            options.maximum = requireBounded(maximum, 0, MAXIMUM_POOL_SIZE);
+            options.maximum = ObjectPoolUtils.requireBounded(maximum, 0, ObjectPoolUtils.MAXIMUM_POOL_SIZE);
             return this;
         }
 
+        /**
+         * Changes the time-to-live timeout.
+         *
+         * @param timeToLiveTimeout the time-to-live timeout
+         * @return self
+         * @see Options#getTimeToLiveTimeout()
+         */
         public Builder<T> timeToLiveTimeout(Duration timeToLiveTimeout) {
             options.timeToLiveTimeout = timeToLiveTimeout;
             return this;
         }
 
+        /**
+         * Changes the abandoned timeout.
+         *
+         * @param abandonedTimeout the abandoned timeout
+         * @return self
+         * @see Options#getAbandonedTimeout()
+         */
         public Builder<T> abandonedTimeout(Duration abandonedTimeout) {
             options.abandonedTimeout = abandonedTimeout;
             return this;
         }
 
+        /**
+         * Changes the inactive timeout.
+         *
+         * @param inactiveTimeout the inactive timeout
+         * @return self
+         * @see Options#getInactiveTimeout()
+         */
         public Builder<T> inactiveTimeout(Duration inactiveTimeout) {
             options.inactiveTimeout = inactiveTimeout;
             return this;
         }
 
+        /**
+         * Changes the maximum wait time.
+         *
+         * @param maximumWait the maximum wait time
+         * @return self
+         * @see Options#getMaximumWait()
+         */
         public Builder<T> maximumWait(Duration maximumWait) {
             options.maximumWait = maximumWait;
             return this;
         }
 
+        /**
+         * Changes the maximum reuse time.
+         *
+         * @param maximumReuseTime the maximum reuse time
+         * @return self
+         * @see Options#getMaximumReuseTime()
+         */
         public Builder<T> maximumReuseTime(Duration maximumReuseTime) {
             options.maximumReuseTime = maximumReuseTime;
             return this;
         }
 
+        /**
+         * Changes the maximum reuse count.
+         *
+         * @param maximumReuseCount the maximum reuse count
+         * @return self
+         * @see Options#getMaximumReuseCount()
+         */
         public Builder<T> maximumReuseCount(int maximumReuseCount) {
             options.maximumReuseCount = maximumReuseCount;
             return this;
         }
 
+        /**
+         * Changes the strategy.
+         *
+         * @param strategy the strategy
+         * @return self
+         * @see Options#getStrategy()
+         */
         public Builder<T> strategy(Strategy strategy) {
-            requireNonNull(strategy);
+            ObjectPoolUtils.requireNonNull(strategy);
             options.strategy = strategy;
             return this;
         }
 
+        /**
+         * Creates, configures and returns an object pool.
+         *
+         * @return a non-null instance
+         */
         public ObjectPool<T> build() {
             ObjectPoolImpl<T> pool = new ObjectPoolImpl<>(options);
             return pool;

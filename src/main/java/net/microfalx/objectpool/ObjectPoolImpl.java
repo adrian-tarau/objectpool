@@ -1,29 +1,27 @@
-package net.microfalx.binserde.objectpool;
+package net.microfalx.objectpool;
 
 import java.util.Collection;
 import java.util.Deque;
 import java.util.concurrent.LinkedBlockingDeque;
 
-import static net.microfalx.binserde.objectpool.ObjectPoolUtils.requireNonNull;
-
 /**
- * An object pool implementation
+ * An object pool implementation.
  *
  * @param <T> the type of the pooled object
  */
-class ObjectPoolImpl<T> implements ObjectPool<T> {
+final class ObjectPoolImpl<T> implements ObjectPool<T> {
 
     private final OptionsImpl<T> options;
     private final Deque<PooledObjectImpl<T>> queue = new LinkedBlockingDeque<>();
 
     ObjectPoolImpl(OptionsImpl<T> options) {
-        requireNonNull(options);
+        ObjectPoolUtils.requireNonNull(options);
         this.options = options;
     }
 
     @Override
-    public Options getOptions() {
-        return null;
+    public Options<T> getOptions() {
+        return options;
     }
 
     @Override
