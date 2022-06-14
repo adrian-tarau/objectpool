@@ -12,15 +12,15 @@ public class MicroMeterMetrics extends Metrics {
     private final static String[] TAGS = {"object", "pool"};
 
     @Override
-    public void increment(String name) {
-        increment(DEFAULT_GROUP, name);
+    public void count(String name) {
+        count(DEFAULT_GROUP, name);
     }
 
     @Override
-    public void increment(String group, String name) {
+    public void count(String group, String name) {
         requireNonNull(name);
         group = finalGroupName(group);
-        io.micrometer.core.instrument.Metrics.counter(finalName(group, name), TAGS);
+        registry.counter(finalName(group, name), TAGS);
     }
 
     private static String finalGroupName(String group) {

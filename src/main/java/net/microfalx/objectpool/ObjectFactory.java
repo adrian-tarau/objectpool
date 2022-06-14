@@ -8,14 +8,6 @@ package net.microfalx.objectpool;
 public interface ObjectFactory<T> {
 
     /**
-     * Creates or returns a unique identifier for a pooled object.
-     *
-     * @param object the object
-     * @return the identifier
-     */
-    Object createId(T object);
-
-    /**
      * Creates an instance that can be served by the pool and wrap it in a PooledObject to be managed by the pool.
      *
      * @return a newly created object.

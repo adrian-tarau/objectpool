@@ -72,6 +72,22 @@ public class ObjectPoolUtils {
     }
 
     /**
+     * Creates a new instance of a class.
+     * @param className the class name
+     * @param <T> the instance type
+     * @return a new instance of the class
+     */
+    public static <T> T createInstance(String className) {
+        requireNonNull(className);
+        try {
+            Class<?> clazz = ObjectPoolUtils.class.getClassLoader().loadClass(className);
+            return (T) clazz.getConstructor().newInstance();
+        } catch (Exception e) {
+            throw new ObjectPoolException("Failed to create instance of '" + className + "'", e);
+        }
+    }
+
+    /**
      * Returns whether the string is not empty.
      *
      * @param value the string to validate

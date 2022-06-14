@@ -11,13 +11,6 @@ import java.time.ZonedDateTime;
 public interface PooledObject<T> {
 
     /**
-     * Returns an identifier for this pooled object.
-     *
-     * @return a non-null instance
-     */
-    Object getId();
-
-    /**
      * Returns the state of the object.
      *
      * @return a non-null instance

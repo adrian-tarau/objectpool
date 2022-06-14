@@ -31,11 +31,6 @@ final class PooledObjectImpl<T> implements PooledObject<T> {
     private volatile T object;
 
     @Override
-    public Object getId() {
-        return null;
-    }
-
-    @Override
     public State getState() {
         return null;
     }

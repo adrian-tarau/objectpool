@@ -21,7 +21,11 @@ public abstract class Metrics {
         if (instance == null) {
             synchronized (Metrics.class) {
                 if (instance == null) {
-                    instance = new NoMetrics();
+                    try {
+                        instance = ObjectPoolUtils.createInstance("net.microfalx.objectpool.MicroMeterMetrics");
+                    } catch (Exception e) {
+                        instance = new NoMetrics();
+                    }
                 }
             }
         }
@@ -33,7 +37,7 @@ public abstract class Metrics {
      *
      * @param name the name of the counter
      */
-    public abstract void increment(String name);
+    public abstract void count(String name);
 
     /**
      * Increments a counter within a group.
@@ -41,17 +45,17 @@ public abstract class Metrics {
      * @param group the name of the group
      * @param name  the name of the counter
      */
-    public abstract void increment(String group, String name);
+    public abstract void count(String group, String name);
 
     static class NoMetrics extends Metrics {
 
         @Override
-        public void increment(String name) {
+        public void count(String name) {
             // empty by design
         }
 
         @Override
-        public void increment(String group, String name) {
+        public void count(String group, String name) {
             // empty by design
         }
     }
