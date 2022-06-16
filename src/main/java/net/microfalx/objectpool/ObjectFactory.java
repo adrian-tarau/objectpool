@@ -15,7 +15,7 @@ public interface ObjectFactory<T> {
     T makeObject() throws Exception;
 
     /**
-     * Destroys an instance no longer needed by the pool, using the default (NORMAL) DestroyMode.
+     * Destroys an instance no longer needed by the pool.
      *
      * @param object the object to be destroyed
      */
