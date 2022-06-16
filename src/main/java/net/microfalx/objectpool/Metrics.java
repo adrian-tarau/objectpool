@@ -1,5 +1,7 @@
 package net.microfalx.objectpool;
 
+import java.util.function.Supplier;
+
 /**
  * An abstraction to track various metrics.
  */
@@ -11,6 +13,11 @@ public abstract class Metrics {
      * A prefix added to all meters.
      */
     protected static final String GROUP_PREFIX = "Object Pool";
+
+    /**
+     * A default group for metrics.
+     */
+    public static final String DEFAULT_GROUP = "Misc";
 
     /**
      * Returns an instance of metrics.
@@ -33,11 +40,14 @@ public abstract class Metrics {
     }
 
     /**
-     * Increments a counter.
+     * Increments a counter within a group.
      *
-     * @param name the name of the counter
+     * @param group the name of the group
+     * @param name  the name of the counter
      */
-    public abstract void count(String name);
+    public static long count(String group, String name) {
+        return get().doCount(group, name);
+    }
 
     /**
      * Increments a counter within a group.
@@ -45,18 +55,36 @@ public abstract class Metrics {
      * @param group the name of the group
      * @param name  the name of the counter
      */
-    public abstract void count(String group, String name);
+    public abstract long doCount(String group, String name);
+
+    /**
+     * Times a block of code.
+     *
+     * @param group the name of the group
+     * @param name  the name of the timer
+     */
+    public static <T> T time(String group, String name, Supplier<T> supplier) {
+        return get().doTime(group, name, supplier);
+    }
+
+    /**
+     * Times a block of code.
+     *
+     * @param group the name of the group
+     * @param name  the name of the timer
+     */
+    public abstract <T> T doTime(String group, String name, Supplier<T> supplier);
 
     static class NoMetrics extends Metrics {
 
         @Override
-        public void count(String name) {
-            // empty by design
+        public long doCount(String group, String name) {
+            return 0;
         }
 
         @Override
-        public void count(String group, String name) {
-            // empty by design
+        public <T> T doTime(String group, String name, Supplier<T> supplier) {
+            return supplier.get();
         }
     }
 }

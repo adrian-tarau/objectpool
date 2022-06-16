@@ -60,12 +60,12 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
     }
 
     @Override
-    public int getSize(State state) {
+    public int getSize(PooledObject.State state) {
         return 0;
     }
 
     @Override
-    public Collection<PooledObject<T>> getObjects(State state) {
+    public Collection<PooledObject<T>> getObjects(PooledObject.State state) {
         return null;
     }
 }

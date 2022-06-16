@@ -21,7 +21,7 @@ final class OptionsImpl<T> implements ObjectPool.Options<T> {
     Duration maximumWait = ofSeconds(60);
     Duration maximumReuseTime = ofMinutes(15);
     int maximumReuseCount = Integer.MAX_VALUE;
-    Strategy strategy = Strategy.LIFO;
+    ObjectPool.Strategy strategy = ObjectPool.Strategy.LIFO;
     ObjectFactory<T> factory;
 
     @Override
@@ -65,7 +65,7 @@ final class OptionsImpl<T> implements ObjectPool.Options<T> {
     }
 
     @Override
-    public Strategy getStrategy() {
+    public ObjectPool.Strategy getStrategy() {
         return strategy;
     }
 
@@ -73,7 +73,6 @@ final class OptionsImpl<T> implements ObjectPool.Options<T> {
     public ObjectFactory<T> getFactory() {
         return factory;
     }
-
 
     @Override
     public String toString() {

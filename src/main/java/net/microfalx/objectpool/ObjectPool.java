@@ -74,7 +74,7 @@ public interface ObjectPool<T> {
      * @param state the state of pooled objects
      * @return a positive integer
      */
-    int getSize(State state);
+    int getSize(PooledObject.State state);
 
     /**
      * Returns the number of pooled objects in any state.
@@ -89,7 +89,23 @@ public interface ObjectPool<T> {
      * @param state the state of pooled objects
      * @return a non-null collection
      */
-    Collection<PooledObject<T>> getObjects(State state);
+    Collection<PooledObject<T>> getObjects(PooledObject.State state);
+
+    /**
+     * A strategy for the object poll.
+     */
+    enum Strategy {
+
+        /**
+         * Last object added to the pool is borrowed first.
+         */
+        LIFO,
+
+        /**
+         * First object added to the pool is borrowed first.
+         */
+        FIFO
+    }
 
     /**
      * Holds options for an object pool.
@@ -205,7 +221,7 @@ public interface ObjectPool<T> {
      */
     class Builder<T> {
 
-        private OptionsImpl<T> options;
+        private OptionsImpl<T> options = new OptionsImpl<>();
 
         private Builder(ObjectFactory<T> factory) {
             options.factory = ObjectPoolUtils.requireNonNull(factory);
