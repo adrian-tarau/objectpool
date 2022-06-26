@@ -2,6 +2,7 @@ package net.microfalx.objectpool;
 
 import java.time.Duration;
 import java.util.StringJoiner;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
@@ -22,6 +23,7 @@ final class OptionsImpl<T> implements ObjectPool.Options<T> {
     Duration maximumReuseTime = ofMinutes(15);
     int maximumReuseCount = Integer.MAX_VALUE;
     ObjectPool.Strategy strategy = ObjectPool.Strategy.LIFO;
+    ScheduledExecutorService executor;
     ObjectFactory<T> factory;
 
     @Override
@@ -75,6 +77,11 @@ final class OptionsImpl<T> implements ObjectPool.Options<T> {
     }
 
     @Override
+    public ScheduledExecutorService getExecutor() {
+        return executor;
+    }
+
+    @Override
     public String toString() {
         return new StringJoiner(", ", OptionsImpl.class.getSimpleName() + "[", "]")
                 .add("minimum=" + minimum)
@@ -87,6 +94,7 @@ final class OptionsImpl<T> implements ObjectPool.Options<T> {
                 .add("maximumReuseCount=" + maximumReuseCount)
                 .add("strategy=" + strategy)
                 .add("factory=" + factory)
+                .add("executor=" + executor)
                 .toString();
     }
 }

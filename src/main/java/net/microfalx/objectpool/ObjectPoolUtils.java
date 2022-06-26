@@ -1,8 +1,13 @@
 package net.microfalx.objectpool;
 
 import java.lang.reflect.Array;
+import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
+
+import static java.time.ZoneId.systemDefault;
 
 public class ObjectPoolUtils {
 
@@ -72,9 +77,30 @@ public class ObjectPoolUtils {
     }
 
     /**
+     * Returns a zoned date/time if the instant seems to be set ( any value > 0).
+     *
+     * @param instant the instant
+     * @return an optional with the date/time
+     */
+    public static ZonedDateTime fromInstant(long instant) {
+        return ZonedDateTime.ofInstant(Instant.ofEpochMilli(instant), systemDefault());
+    }
+
+    /**
+     * Returns a zoned date/time if the instant seems to be set ( any value > 0).
+     *
+     * @param instant the instant
+     * @return an optional with the date/time
+     */
+    public static Optional<ZonedDateTime> optionalFromInstant(long instant) {
+        return instant > 0 ? Optional.of(fromInstant(instant)) : Optional.empty();
+    }
+
+    /**
      * Creates a new instance of a class.
+     *
      * @param className the class name
-     * @param <T> the instance type
+     * @param <T>       the instance type
      * @return a new instance of the class
      */
     public static <T> T createInstance(String className) {

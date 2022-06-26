@@ -1,12 +1,8 @@
 package net.microfalx.objectpool;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
-import static java.time.Duration.ofNanos;
+import static net.microfalx.objectpool.ObjectPoolUtils.requireNonNull;
 
 /**
  * Implementation of {@link  PooledObject}.
@@ -15,73 +11,38 @@ import static java.time.Duration.ofNanos;
  */
 final class PooledObjectImpl<T> implements PooledObject<T> {
 
-    private final long created = System.currentTimeMillis();
-    private volatile long lastBorrowed;
-    private volatile long lastReturned;
-    private volatile long lastUsed;
+    private final T object;
+    private final PooledObjectMetricsImpl metrics;
+    private final ReentrantLock lock = new ReentrantLock();
 
-    private final AtomicLong borrowedCounter = new AtomicLong();
-    private final AtomicLong borrowedDuration = new AtomicLong();
-    private final AtomicLong totalBorrowedDuration = new AtomicLong();
+    private volatile State state = State.IDLE;
 
-    private final AtomicLong idleCounter = new AtomicLong();
-    private final AtomicLong idleDuration = new AtomicLong();
-    private final AtomicLong totalIdleDuration = new AtomicLong();
-
-    private volatile T object;
+    PooledObjectImpl(T object) {
+        requireNonNull(object);
+        this.object = object;
+        this.metrics = new PooledObjectMetricsImpl();
+    }
 
     @Override
     public State getState() {
-        return null;
-    }
-
-    @Override
-    public ZonedDateTime getCreatedTime() {
-        return created > 0 ? ZonedDateTime.ofInstant(Instant.ofEpochMilli(created), ZoneId.systemDefault()) : null;
-    }
-
-    @Override
-    public ZonedDateTime getLastBorrowedTime() {
-        return lastBorrowed > 0 ? ZonedDateTime.ofInstant(Instant.ofEpochMilli(lastBorrowed), ZoneId.systemDefault()) : null;
-    }
-
-    @Override
-    public ZonedDateTime getLastReturnedTime() {
-        return lastReturned > 0 ? ZonedDateTime.ofInstant(Instant.ofEpochMilli(lastReturned), ZoneId.systemDefault()) : null;
-    }
-
-    @Override
-    public ZonedDateTime getLastUsedTime() {
-        return lastUsed > 0 ? ZonedDateTime.ofInstant(Instant.ofEpochMilli(lastUsed), ZoneId.systemDefault()) : null;
-    }
-
-    @Override
-    public long getBorrowedCount() {
-        return borrowedCounter.get();
-    }
-
-    @Override
-    public Duration getBorrowedDuration() {
-        return ofNanos(borrowedDuration.get());
-    }
-
-    @Override
-    public Duration getTotalBorrowedDuration() {
-        return ofNanos(totalBorrowedDuration.get());
-    }
-
-    @Override
-    public Duration getIdleDuration() {
-        return ofNanos(idleDuration.get());
-    }
-
-    @Override
-    public Duration getTotalIdleDuration() {
-        return ofNanos(totalIdleDuration.get());
+        return state;
     }
 
     @Override
     public T get() {
         return object;
+    }
+
+    @Override
+    public PooledObject.Metrics getMetrics() {
+        return metrics;
+    }
+
+    void changeState(State state) {
+        this.state = state;
+    }
+
+    ReentrantLock getLock() {
+        return lock;
     }
 }

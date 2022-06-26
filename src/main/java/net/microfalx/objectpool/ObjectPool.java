@@ -1,7 +1,11 @@
 package net.microfalx.objectpool;
 
 import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.Collection;
+import java.util.concurrent.ScheduledExecutorService;
+
+import static net.microfalx.objectpool.ObjectPoolUtils.requireNonNull;
 
 /**
  * An object pool.
@@ -69,6 +73,13 @@ public interface ObjectPool<T> {
     void close();
 
     /**
+     * Returns whether the object pool is closed.
+     *
+     * @return <code>true</code> if closed, false otherwise
+     */
+    boolean isClosed();
+
+    /**
      * Returns the number of pooled objects in a given state.
      *
      * @param state the state of pooled objects
@@ -84,12 +95,26 @@ public interface ObjectPool<T> {
     int getSize();
 
     /**
+     * Returns the pooled objects in any given state.
+     *
+     * @return a non-null collection
+     */
+    Collection<PooledObject<T>> getObjects();
+
+    /**
      * Returns the pooled objects in a given state.
      *
      * @param state the state of pooled objects
      * @return a non-null collection
      */
     Collection<PooledObject<T>> getObjects(PooledObject.State state);
+
+    /**
+     * Returns metrics about this pool.
+     *
+     * @return a non-null instance
+     */
+    ObjectPool.Metrics getMetrics();
 
     /**
      * A strategy for the object poll.
@@ -105,6 +130,47 @@ public interface ObjectPool<T> {
          * First object added to the pool is borrowed first.
          */
         FIFO
+    }
+
+    /**
+     * An interface which provides metrics about an object pool.
+     */
+    interface Metrics {
+
+        /**
+         * Returns the time when the object pool was created.
+         *
+         * @return a non-null instance
+         */
+        ZonedDateTime getCreatedTime();
+
+        /**
+         * Returns the number of times this object has been borrowed.
+         *
+         * @return a positive integer
+         */
+        long getBorrowedCount();
+
+        /**
+         * Returns the amount of time this object spent in the active state (borrowed).
+         *
+         * @return the duration
+         */
+        Duration getBorrowedDuration();
+
+        /**
+         * Returns the number of times an object has been released.
+         *
+         * @return a positive integer
+         */
+        long getReleasedCount();
+
+        /**
+         * Returns the amount of time spent to release objects.
+         *
+         * @return the duration
+         */
+        Duration getReleasedDuration();
     }
 
     /**
@@ -212,6 +278,12 @@ public interface ObjectPool<T> {
          * @return a non-null instance
          */
         ObjectFactory<T> getFactory();
+
+        /**
+         * Returns the executor used for maintenance tasks.
+         * @return a non-null instance
+         */
+        ScheduledExecutorService getExecutor();
     }
 
     /**
@@ -224,7 +296,7 @@ public interface ObjectPool<T> {
         private OptionsImpl<T> options = new OptionsImpl<>();
 
         private Builder(ObjectFactory<T> factory) {
-            options.factory = ObjectPoolUtils.requireNonNull(factory);
+            options.factory = requireNonNull(factory);
         }
 
         /**
@@ -331,8 +403,21 @@ public interface ObjectPool<T> {
          * @see Options#getStrategy()
          */
         public Builder<T> strategy(Strategy strategy) {
-            ObjectPoolUtils.requireNonNull(strategy);
+            requireNonNull(strategy);
             options.strategy = strategy;
+            return this;
+        }
+
+        /**
+         * Changes the strategy.
+         *
+         * @param strategy the strategy
+         * @return self
+         * @see Options#getStrategy()
+         */
+        public Builder<T> executor(ScheduledExecutorService executor) {
+            requireNonNull(executor);
+            options.executor = executor;
             return this;
         }
 

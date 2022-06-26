@@ -59,14 +59,26 @@ class ObjectPoolImplTest {
 
     @Test
     void addObject() {
+        assertEquals(0, objectPool.getSize());
+        objectPool.addObject();
+        assertEquals(1, objectPool.getSize());
+        assertEquals(1, objectPool.getSize(PooledObject.State.IDLE));
     }
 
     @Test
     void borrowObject() {
+        assertEquals(0, objectPool.getSize());
+        objectPool.borrowObject();
+        assertEquals(1, objectPool.getSize());
+        assertEquals(1, objectPool.getSize(PooledObject.State.ACTIVE));
     }
 
     @Test
     void returnObject() {
+        Integer object = objectPool.borrowObject();
+        objectPool.returnObject(object);
+        assertEquals(1, objectPool.getSize());
+        assertEquals(1, objectPool.getSize(PooledObject.State.IDLE));
     }
 
     @Test
