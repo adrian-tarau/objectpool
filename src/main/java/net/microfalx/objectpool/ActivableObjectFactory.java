@@ -13,14 +13,16 @@ public interface ActivableObjectFactory<T> extends ObjectFactory<T> {
     /**
      * Activates an instance before it is used (borrowed).
      *
+     * @param pool   the pool which requested the object to be activated
      * @param object the pooled object
      */
-    void activateObject(PooledObject<T> object) throws Exception;
+    void activateObject(ObjectPool<T> pool, PooledObject<T> object) throws Exception;
 
     /**
      * Deactivates an instance returned to the pool, before it is switched to an idle state and returned to the pool.
      *
+     * @param pool   the pool which requested the object to be deactivated
      * @param object the pooled object
      */
-    void deactivateObject(PooledObject<T> object) throws Exception;
+    void deactivateObject(ObjectPool<T> pool, PooledObject<T> object) throws Exception;
 }

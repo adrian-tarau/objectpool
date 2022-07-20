@@ -1,8 +1,10 @@
 package net.microfalx.objectpool;
 
+import java.net.URI;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static net.microfalx.objectpool.ObjectPoolUtils.requireNonNull;
@@ -174,6 +176,26 @@ public interface ObjectPool<T> {
     }
 
     /**
+     * Identifies a node of a remote service which can be the source of objects.
+     */
+    interface Node {
+
+        /**
+         * Returns the node name.
+         *
+         * @return a non-null instance
+         */
+        String getName();
+
+        /**
+         * Returns the URI which gives access to the service on the node.
+         *
+         * @return a non-null instance
+         */
+        URI getUri();
+    }
+
+    /**
      * Holds options for an object pool.
      * <p>
      * The default settings are:
@@ -187,6 +209,15 @@ public interface ObjectPool<T> {
      * </ul>
      */
     interface Options<T> {
+
+        /**
+         * Returns a list of nodes supporting the object pool.
+         * <p>
+         * A pool without nodes does not mean it cannot create objects.
+         *
+         * @return a non-null instance
+         */
+        List<Node> getNodes();
 
         /**
          * Returns the minimum number of objects preserved in the pool.
@@ -281,6 +312,7 @@ public interface ObjectPool<T> {
 
         /**
          * Returns the executor used for maintenance tasks.
+         *
          * @return a non-null instance
          */
         ScheduledExecutorService getExecutor();
@@ -297,6 +329,17 @@ public interface ObjectPool<T> {
 
         private Builder(ObjectFactory<T> factory) {
             options.factory = requireNonNull(factory);
+        }
+
+        /**
+         * Registers a node with the pool.
+         *
+         * @param uri the URI which gives access to the service on the node
+         * @return self
+         */
+        public Builder<T> node(URI uri) {
+            options.nodes.add(new NodeImpl(uri));
+            return this;
         }
 
         /**
@@ -411,7 +454,7 @@ public interface ObjectPool<T> {
         /**
          * Changes the strategy.
          *
-         * @param strategy the strategy
+         * @param executor the executor
          * @return self
          * @see Options#getStrategy()
          */

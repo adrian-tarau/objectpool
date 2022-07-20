@@ -13,10 +13,8 @@ class ObjectPoolMetricsImplTest {
         assertEquals(0, metrics.getBorrowedCount());
         assertEquals(0, metrics.getBorrowedDuration().toNanos());
 
-        metrics.updateBorrowCount();
-        assertEquals(1, metrics.getBorrowedCount());
-
         metrics.updateBorrowedDuration(100);
+        assertEquals(1, metrics.getBorrowedCount());
         assertEquals(100, metrics.getBorrowedDuration().toNanos());
     }
 

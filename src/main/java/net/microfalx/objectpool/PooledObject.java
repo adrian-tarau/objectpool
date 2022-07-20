@@ -12,6 +12,13 @@ import java.util.Optional;
 public interface PooledObject<T> {
 
     /**
+     * Returns the pool which owns this pooled object.
+     *
+     * @return a non-null instance
+     */
+    ObjectPool<T> getOwner();
+
+    /**
      * Returns the state of the object.
      *
      * @return a non-null instance
@@ -30,7 +37,7 @@ public interface PooledObject<T> {
      *
      * @return a non-null instance
      */
-    PooledObject.Metrics getMetrics();
+    Metrics getMetrics();
 
     /**
      * An enum which holdes the state of a pooled object.

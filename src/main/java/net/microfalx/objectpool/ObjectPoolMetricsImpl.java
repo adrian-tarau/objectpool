@@ -42,12 +42,9 @@ public class ObjectPoolMetricsImpl implements ObjectPool.Metrics {
         return ofNanos(borrowedDuration.get());
     }
 
-    void updateBorrowCount() {
-        borrowedCounter.incrementAndGet();
-    }
-
     void updateBorrowedDuration(long duration) {
         borrowedDuration.addAndGet(duration);
+        borrowedCounter.incrementAndGet();
     }
 
     void updateReleaseCount() {

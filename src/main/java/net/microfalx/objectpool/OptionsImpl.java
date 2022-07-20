@@ -1,6 +1,9 @@
 package net.microfalx.objectpool;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.StringJoiner;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -25,6 +28,12 @@ final class OptionsImpl<T> implements ObjectPool.Options<T> {
     ObjectPool.Strategy strategy = ObjectPool.Strategy.LIFO;
     ScheduledExecutorService executor;
     ObjectFactory<T> factory;
+    List<ObjectPool.Node> nodes = new ArrayList<>();
+
+    @Override
+    public List<ObjectPool.Node> getNodes() {
+        return Collections.unmodifiableList(nodes);
+    }
 
     @Override
     public int getMinimum() {

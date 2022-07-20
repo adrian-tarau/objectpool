@@ -11,16 +11,24 @@ import static net.microfalx.objectpool.ObjectPoolUtils.requireNonNull;
  */
 final class PooledObjectImpl<T> implements PooledObject<T> {
 
+    private final ObjectPool<T> owner;
     private final T object;
     private final PooledObjectMetricsImpl metrics;
     private final ReentrantLock lock = new ReentrantLock();
 
     private volatile State state = State.IDLE;
 
-    PooledObjectImpl(T object) {
+    PooledObjectImpl(ObjectPool<T> owner, T object) {
+        requireNonNull(owner);
         requireNonNull(object);
+        this.owner = owner;
         this.object = object;
         this.metrics = new PooledObjectMetricsImpl();
+    }
+
+    @Override
+    public ObjectPool<T> getOwner() {
+        return owner;
     }
 
     @Override

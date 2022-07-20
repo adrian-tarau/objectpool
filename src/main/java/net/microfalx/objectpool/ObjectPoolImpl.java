@@ -52,8 +52,8 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
         lock.lock();
         try {
             if (objects.size() < options.getMaximum()) {
-                T object = options.getFactory().makeObject();
-                PooledObjectImpl<T> pooledObject = new PooledObjectImpl<>(object);
+                T object = options.getFactory().makeObject(this);
+                PooledObjectImpl<T> pooledObject = new PooledObjectImpl<>(this, object);
                 objects.add(pooledObject);
                 queue.offer(pooledObject);
             }
@@ -68,14 +68,18 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
     public T borrowObject() {
         checkIfOpen();
 
-        long endTime = System.nanoTime() + options.getMaximumWait().toNanos();
+        long startTime = System.nanoTime();
+        long endTime = startTime + options.getMaximumWait().toNanos();
         long waitForAvailable = INITIAL_WAIT_TIME;
 
         while (System.nanoTime() < endTime) {
             PooledObjectImpl<T> next = pollNext(waitForAvailable);
             if (next != null && next.getState() == PooledObject.State.IDLE) {
-                next.changeState(PooledObject.State.ACTIVE);
-                return next.get();
+                if (activate(next)) {
+                    next.changeState(PooledObject.State.ACTIVE);
+                    metrics.updateBorrowedDuration(System.nanoTime() - startTime);
+                    return next.get();
+                }
             } else if (canAddMoreObjects()) {
                 addObject();
             }
@@ -112,7 +116,16 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
 
     @Override
     public void clear() {
-
+        lock.lock();
+        try {
+            objects.forEach(object -> {
+                if (object.getState() == PooledObject.State.IDLE) {
+                    invalidateObject(object.get());
+                }
+            });
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -176,11 +189,12 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
             LOGGER.debug("Destroy object " + object);
             object.changeState(PooledObject.State.DESTROYING);
             try {
-                options.getFactory().destroyObject(object.get());
+                options.getFactory().destroyObject(this, object.get());
             } catch (Exception e) {
                 LOGGER.debug("Failed to destroy object " + object, e);
+            } finally {
+                object.changeState(PooledObject.State.DESTROYED);
             }
-            object.changeState(PooledObject.State.DESTROYED);
         } finally {
             object.getLock().unlock();
         }
@@ -210,10 +224,22 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
     private void deactivate(PooledObjectImpl<T> object) {
         if (!(options.getFactory() instanceof ActivableObjectFactory)) return;
         try {
-            ((ActivableObjectFactory<T>) options.getFactory()).deactivateObject(object);
+            ((ActivableObjectFactory<T>) options.getFactory()).deactivateObject(this, object);
         } catch (Exception e) {
             LOGGER.warn("Failed to deactivate object " + object + ", destroy");
             destroyObject(object);
+        }
+    }
+
+    private boolean activate(PooledObjectImpl<T> object) {
+        if (!(options.getFactory() instanceof ActivableObjectFactory)) return true;
+        try {
+            ((ActivableObjectFactory<T>) options.getFactory()).activateObject(this, object);
+            return true;
+        } catch (Exception e) {
+            LOGGER.warn("Failed to activate object " + object + ", destroy");
+            destroyObject(object);
+            return false;
         }
     }
 }
