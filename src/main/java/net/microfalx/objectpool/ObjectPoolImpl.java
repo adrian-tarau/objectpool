@@ -1,5 +1,6 @@
 package net.microfalx.objectpool;
 
+import net.microfalx.metrics.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +15,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
+import static net.microfalx.objectpool.ObjectPoolUtils.METRICS;
 import static net.microfalx.objectpool.ObjectPoolUtils.requireNonNull;
 
 /**
@@ -49,18 +51,20 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
     public void addObject() {
         checkIfOpen();
 
-        lock.lock();
-        try {
-            if (objects.size() < options.getMaximum()) {
-                T object = options.getFactory().makeObject(this);
-                PooledObjectImpl<T> pooledObject = new PooledObjectImpl<>(this, object);
-                objects.add(pooledObject);
-                queue.offer(pooledObject);
+        try (Timer timer = METRICS.startTimer("add_object")) {
+            lock.lock();
+            try {
+                if (objects.size() < options.getMaximum()) {
+                    T object = options.getFactory().makeObject(this);
+                    PooledObjectImpl<T> pooledObject = new PooledObjectImpl<>(this, object);
+                    objects.add(pooledObject);
+                    queue.offer(pooledObject);
+                }
+            } catch (Exception e) {
+                throw new ObjectPoolException("Failed to create object with factory " + options.getFactory().getClass().getName(), e);
+            } finally {
+                lock.unlock();
             }
-        } catch (Exception e) {
-            throw new ObjectPoolException("Failed to create object with factory " + options.getFactory().getClass().getName(), e);
-        } finally {
-            lock.unlock();
         }
     }
 
@@ -72,59 +76,68 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
         long endTime = startTime + options.getMaximumWait().toNanos();
         long waitForAvailable = INITIAL_WAIT_TIME;
 
-        while (System.nanoTime() < endTime) {
-            PooledObjectImpl<T> next = pollNext(waitForAvailable);
-            if (next != null && next.getState() == PooledObject.State.IDLE) {
-                if (activate(next)) {
-                    next.changeState(PooledObject.State.ACTIVE);
-                    metrics.updateBorrowedDuration(System.nanoTime() - startTime);
-                    return next.get();
+        try (Timer timer = METRICS.startTimer("borrow_object")) {
+            while (System.nanoTime() < endTime) {
+                PooledObjectImpl<T> next = pollNext(waitForAvailable);
+                if (next != null && next.getState() == PooledObject.State.IDLE) {
+                    if (activate(next)) {
+                        next.changeState(PooledObject.State.ACTIVE);
+                        metrics.updateBorrowedDuration(System.nanoTime() - startTime);
+                        return next.get();
+                    }
+                } else if (canAddMoreObjects()) {
+                    addObject();
                 }
-            } else if (canAddMoreObjects()) {
-                addObject();
+                waitForAvailable = (long) Math.max(MAX_WAIT_TIME, waitForAvailable * 1.2f);
             }
-            waitForAvailable = (long) Math.max(MAX_WAIT_TIME, waitForAvailable * 1.2f);
+            throw new ObjectPoolException("Timeout (" + options.getMaximumWait().getSeconds() + "s) waiting for an object");
         }
-        throw new ObjectPoolException("Timeout (" + options.getMaximumWait().getSeconds() + "s) waiting for an object");
     }
 
     @Override
     public void returnObject(T object) {
         requireNonNull(object);
 
-        PooledObjectImpl<T> pooledObject = find(object);
-        pooledObject.changeState(PooledObject.State.RETURNING);
-        deactivate(pooledObject);
-        pooledObject.changeState(PooledObject.State.IDLE);
-        queue.offer(pooledObject);
+        try (Timer timer = METRICS.startTimer("return_object")) {
+            PooledObjectImpl<T> pooledObject = find(object);
+            pooledObject.changeState(PooledObject.State.RETURNING);
+            deactivate(pooledObject);
+            pooledObject.changeState(PooledObject.State.IDLE);
+            queue.offer(pooledObject);
+        }
     }
 
     @Override
     public void invalidateObject(T object) {
         requireNonNull(object);
-        PooledObjectImpl<T> pooledObject = find(object);
-        pooledObject.changeState(PooledObject.State.DESTROYING);
-        deactivate(pooledObject);
-        pooledObject.changeState(PooledObject.State.DESTROYED);
-        lock.lock();
-        try {
-            objects.remove(pooledObject);
-        } finally {
-            lock.unlock();
+
+        try (Timer timer = METRICS.startTimer("invalidate_object")) {
+            PooledObjectImpl<T> pooledObject = find(object);
+            pooledObject.changeState(PooledObject.State.DESTROYING);
+            deactivate(pooledObject);
+            pooledObject.changeState(PooledObject.State.DESTROYED);
+            lock.lock();
+            try {
+                objects.remove(pooledObject);
+            } finally {
+                lock.unlock();
+            }
         }
     }
 
     @Override
     public void clear() {
-        lock.lock();
-        try {
-            objects.forEach(object -> {
-                if (object.getState() == PooledObject.State.IDLE) {
-                    invalidateObject(object.get());
-                }
-            });
-        } finally {
-            lock.unlock();
+        try (Timer timer = METRICS.startTimer("clear")) {
+            lock.lock();
+            try {
+                objects.forEach(object -> {
+                    if (object.getState() == PooledObject.State.IDLE) {
+                        invalidateObject(object.get());
+                    }
+                });
+            } finally {
+                lock.unlock();
+            }
         }
     }
 

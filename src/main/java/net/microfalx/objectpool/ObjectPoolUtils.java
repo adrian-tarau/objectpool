@@ -1,5 +1,7 @@
 package net.microfalx.objectpool;
 
+import net.microfalx.metrics.Metrics;
+
 import java.lang.reflect.Array;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -15,6 +17,11 @@ public class ObjectPoolUtils {
      * The maximum allowed numbers of objects in any pool
      */
     public static final int MAXIMUM_POOL_SIZE = 1024 * 1024;
+
+    /**
+     * Holds all metrics related to object pool
+     */
+    protected static Metrics METRICS = Metrics.of("object_pool");
 
     /**
      * Checks that the specified object reference is not {@code null}.
@@ -94,23 +101,6 @@ public class ObjectPoolUtils {
      */
     public static Optional<ZonedDateTime> optionalFromInstant(long instant) {
         return instant > 0 ? Optional.of(fromInstant(instant)) : Optional.empty();
-    }
-
-    /**
-     * Creates a new instance of a class.
-     *
-     * @param className the class name
-     * @param <T>       the instance type
-     * @return a new instance of the class
-     */
-    public static <T> T createInstance(String className) {
-        requireNonNull(className);
-        try {
-            Class<?> clazz = ObjectPoolUtils.class.getClassLoader().loadClass(className);
-            return (T) clazz.getConstructor().newInstance();
-        } catch (Exception e) {
-            throw new ObjectPoolException("Failed to create instance of '" + className + "'", e);
-        }
     }
 
     /**
