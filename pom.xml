@@ -58,12 +58,15 @@
     <properties>
         <java.version>11</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Runtime -->
         <resource.version>1.0.0-SNAPSHOT</resource.version>
-        <logback.version>2.0.6</logback.version>
-        <junit.version>5.9.2</junit.version>
-        <assertj.version>3.24.1</assertj.version>
-        <mockito.version>4.6.1</mockito.version>
+        <logback.version>2.0.7</logback.version>
+        <!-- Tests -->
+        <junit.version>5.9.1</junit.version>
+        <assertj.version>3.24.2</assertj.version>
+        <mockito.version>5.3.1</mockito.version>
         <jmh.version>1.36</jmh.version>
+        <awaitility.version>4.2.0</awaitility.version>
     </properties>
 
     <developers>
@@ -113,6 +116,11 @@
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>${assertj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>${awaitility.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.openjdk.jmh</groupId>
