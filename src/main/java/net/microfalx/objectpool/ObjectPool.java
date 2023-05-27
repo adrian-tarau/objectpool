@@ -7,7 +7,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static net.microfalx.objectpool.ObjectPoolUtils.requireNonNull;
+import static net.microfalx.lang.ArgumentUtils.requireBounded;
+import static net.microfalx.lang.ArgumentUtils.requireNonNull;
 
 /**
  * An object pool.
@@ -350,7 +351,7 @@ public interface ObjectPool<T> {
          * @see Options#getMinimum()
          */
         public Builder<T> minimum(int minimum) {
-            options.minimum = ObjectPoolUtils.requireBounded(minimum, 0, ObjectPoolUtils.MAXIMUM_POOL_SIZE);
+            options.minimum = requireBounded(minimum, 0, ObjectPoolUtils.MAXIMUM_POOL_SIZE);
             return this;
         }
 
@@ -362,7 +363,7 @@ public interface ObjectPool<T> {
          * @see Options#getMaximum()
          */
         public Builder<T> maximum(int maximum) {
-            options.maximum = ObjectPoolUtils.requireBounded(maximum, 0, ObjectPoolUtils.MAXIMUM_POOL_SIZE);
+            options.maximum = requireBounded(maximum, 0, ObjectPoolUtils.MAXIMUM_POOL_SIZE);
             return this;
         }
 

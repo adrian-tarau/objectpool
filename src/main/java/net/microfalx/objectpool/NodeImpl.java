@@ -2,12 +2,14 @@ package net.microfalx.objectpool;
 
 import java.net.URI;
 
+import static net.microfalx.lang.ArgumentUtils.requireNonNull;
+
 class NodeImpl implements ObjectPool.Node {
 
     private final URI uri;
 
     NodeImpl(URI uri) {
-        ObjectPoolUtils.requireNonNull(uri);
+        requireNonNull(uri);
         this.uri = uri;
     }
 

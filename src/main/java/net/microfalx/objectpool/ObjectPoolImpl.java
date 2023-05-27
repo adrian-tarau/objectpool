@@ -15,8 +15,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
+import static net.microfalx.lang.ArgumentUtils.requireNonNull;
 import static net.microfalx.objectpool.ObjectPoolUtils.METRICS;
-import static net.microfalx.objectpool.ObjectPoolUtils.requireNonNull;
 
 /**
  * An object pool implementation.

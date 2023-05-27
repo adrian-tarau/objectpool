@@ -2,7 +2,8 @@ package net.microfalx.objectpool;
 
 import java.util.concurrent.locks.ReentrantLock;
 
-import static net.microfalx.objectpool.ObjectPoolUtils.requireNonNull;
+import static net.microfalx.lang.ArgumentUtils.requireNonNull;
+
 
 /**
  * Implementation of {@link  PooledObject}.
