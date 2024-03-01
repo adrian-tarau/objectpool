@@ -1,6 +1,5 @@
 package net.microfalx.objectpool;
 
-import net.microfalx.metrics.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,8 +49,7 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
     @Override
     public void addObject() {
         checkIfOpen();
-
-        try (Timer timer = METRICS.startTimer("add_object")) {
+        METRICS.time("Add", (t) -> {
             lock.lock();
             try {
                 if (objects.size() < options.getMaximum()) {
@@ -65,7 +63,7 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
             } finally {
                 lock.unlock();
             }
-        }
+        });
     }
 
     @Override
@@ -74,9 +72,9 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
 
         long startTime = System.nanoTime();
         long endTime = startTime + options.getMaximumWait().toNanos();
-        long waitForAvailable = INITIAL_WAIT_TIME;
 
-        try (Timer timer = METRICS.startTimer("borrow_object")) {
+        return METRICS.time("Borrow", () -> {
+            long waitForAvailable = INITIAL_WAIT_TIME;
             while (System.nanoTime() < endTime) {
                 PooledObjectImpl<T> next = pollNext(waitForAvailable);
                 if (next != null && next.getState() == PooledObject.State.IDLE) {
@@ -91,27 +89,25 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
                 waitForAvailable = (long) Math.max(MAX_WAIT_TIME, waitForAvailable * 1.2f);
             }
             throw new ObjectPoolException("Timeout (" + options.getMaximumWait().getSeconds() + "s) waiting for an object");
-        }
+        });
     }
 
     @Override
     public void returnObject(T object) {
         requireNonNull(object);
-
-        try (Timer timer = METRICS.startTimer("return_object")) {
+        METRICS.time("Return", (t) -> {
             PooledObjectImpl<T> pooledObject = find(object);
             pooledObject.changeState(PooledObject.State.RETURNING);
             deactivate(pooledObject);
             pooledObject.changeState(PooledObject.State.IDLE);
             queue.offer(pooledObject);
-        }
+        });
     }
 
     @Override
     public void invalidateObject(T object) {
         requireNonNull(object);
-
-        try (Timer timer = METRICS.startTimer("invalidate_object")) {
+        METRICS.time("Invalidate", (t) -> {
             PooledObjectImpl<T> pooledObject = find(object);
             pooledObject.changeState(PooledObject.State.DESTROYING);
             deactivate(pooledObject);
@@ -122,12 +118,12 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
             } finally {
                 lock.unlock();
             }
-        }
+        });
     }
 
     @Override
     public void clear() {
-        try (Timer timer = METRICS.startTimer("clear")) {
+        METRICS.time("Clear", (t) -> {
             lock.lock();
             try {
                 objects.forEach(object -> {
@@ -138,7 +134,7 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
             } finally {
                 lock.unlock();
             }
-        }
+        });
     }
 
     @Override

@@ -18,7 +18,7 @@ public class ObjectPoolUtils {
     /**
      * Holds all metrics related to object pool
      */
-    protected static Metrics METRICS = Metrics.of("object_pool");
+    protected static Metrics METRICS = Metrics.of("Object Pool");
 
     /**
      * Returns a zoned date/time if the instant seems to be set ( any value > 0).
