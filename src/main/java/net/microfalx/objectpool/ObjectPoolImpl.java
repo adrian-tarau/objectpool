@@ -69,10 +69,8 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
     @Override
     public T borrowObject() {
         checkIfOpen();
-
         long startTime = System.nanoTime();
         long endTime = startTime + options.getMaximumWait().toNanos();
-
         return METRICS.time("Borrow", () -> {
             long waitForAvailable = INITIAL_WAIT_TIME;
             while (System.nanoTime() < endTime) {
