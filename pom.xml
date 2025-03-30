@@ -57,7 +57,8 @@
 
     <properties>
         <bom.version>1.0.11</bom.version>
-        <resource.version>0.8.3-SNAPSHOT</resource.version>
+        <lang.version>1.0.0</lang.version>
+        <metrics.version>1.0.0</metrics.version>
     </properties>
 
     <developers>
@@ -79,9 +80,15 @@
             </dependency>
 
             <dependency>
-                <groupId>net.microfalx.resource</groupId>
-                <artifactId>resource-core</artifactId>
-                <version>${resource.version}</version>
+                <groupId>net.microfalx</groupId>
+                <artifactId>lang</artifactId>
+                <version>${lang.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>net.microfalx</groupId>
+                <artifactId>metrics</artifactId>
+                <version>${metrics.version}</version>
             </dependency>
 
         </dependencies>
@@ -97,8 +104,13 @@
         </dependency>
 
         <dependency>
-            <groupId>net.microfalx.resource</groupId>
-            <artifactId>resource-core</artifactId>
+            <groupId>net.microfalx</groupId>
+            <artifactId>lang</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>net.microfalx</groupId>
+            <artifactId>metrics</artifactId>
         </dependency>
 
         <!-- Tests -->
