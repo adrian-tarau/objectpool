@@ -1,5 +1,9 @@
 package net.microfalx.objectpool;
 
+import net.microfalx.lang.Descriptable;
+import net.microfalx.lang.Identifiable;
+import net.microfalx.lang.Nameable;
+
 import java.net.URI;
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -15,7 +19,7 @@ import static net.microfalx.lang.ArgumentUtils.requireNonNull;
  *
  * @param <T> the type of pooled objects
  */
-public interface ObjectPool<T> {
+public interface ObjectPool<T> extends Identifiable<String>, Nameable, Descriptable, Cloneable {
 
     /**
      * Creates a builder used to initialize and create the pool.
@@ -25,6 +29,15 @@ public interface ObjectPool<T> {
      */
     static <T> Builder<T> create(ObjectFactory<T> factory) {
         return new Builder<>(factory);
+    }
+
+    /**
+     * Returns all registered pools.
+     *
+     * @return a non-null collection
+     */
+    static Collection<ObjectPool<?>> getPools() {
+        return ObjectPoolImpl.getPools();
     }
 
     /**
@@ -74,6 +87,13 @@ public interface ObjectPool<T> {
      * Any pooled object and their resources will be released.
      */
     void close();
+
+    /**
+     * Returns whether the pool is available (can create objects).
+     *
+     * @return {@code true} if the pool is available, {@code false} otherwise
+     */
+    boolean isAvailable();
 
     /**
      * Returns whether the object pool is closed.
@@ -148,14 +168,14 @@ public interface ObjectPool<T> {
         ZonedDateTime getCreatedTime();
 
         /**
-         * Returns the number of times this object has been borrowed.
+         * Returns the number of times an object has been borrowed.
          *
          * @return a positive integer
          */
         long getBorrowedCount();
 
         /**
-         * Returns the amount of time this object spent in the active state (borrowed).
+         * Returns the amount of time objects spent in the active state (borrowed).
          *
          * @return the duration
          */
@@ -209,7 +229,7 @@ public interface ObjectPool<T> {
      * <li>15 minutes reuse time</li>
      * </ul>
      */
-    interface Options<T> {
+    interface Options<T> extends Identifiable<String>, Nameable, Descriptable {
 
         /**
          * Returns a list of nodes supporting the object pool.
@@ -273,6 +293,16 @@ public interface ObjectPool<T> {
         Duration getInactiveTimeout();
 
         /**
+         * Returns the connection timeout.
+         * <p>
+         * The connection timeout specifies how long the pool will wait for an object to be create if the factory
+         * connects to an external service.
+         *
+         * @return a positive duration
+         */
+        Duration getConnectionTimeout();
+
+        /**
          * Returns the maximum amount of time a client will wait for an object o become available in the pool.
          *
          * @return a positive duration
@@ -326,10 +356,38 @@ public interface ObjectPool<T> {
      */
     class Builder<T> {
 
-        private OptionsImpl<T> options = new OptionsImpl<>();
+        protected final OptionsImpl<T> options;
 
-        private Builder(ObjectFactory<T> factory) {
-            options.factory = requireNonNull(factory);
+        protected Builder(ObjectFactory<T> factory) {
+            this(factory, new OptionsImpl<>());
+        }
+
+        protected Builder(ObjectFactory<T> factory, OptionsImpl<T> options) {
+            this.options = requireNonNull(options);
+            this.options.factory = requireNonNull(factory);
+        }
+
+        /**
+         * Changes the pool identifier.
+         *
+         * @param id the pool identifier
+         * @return self
+         */
+        public Builder<T> id(String id) {
+            this.options.updateId(id);
+            return this;
+        }
+
+        /**
+         * Changes the pool name.
+         *
+         * @param name the pool name
+         * @return self
+         */
+        public Builder<T> name(String name) {
+            this.options.updateName(name);
+            this.options.updateDescription(name);
+            return this;
         }
 
         /**
@@ -388,6 +446,18 @@ public interface ObjectPool<T> {
          */
         public Builder<T> abandonedTimeout(Duration abandonedTimeout) {
             options.abandonedTimeout = abandonedTimeout;
+            return this;
+        }
+
+        /**
+         * Changes the inactive timeout.
+         *
+         * @param inactiveTimeout the inactive timeout
+         * @return self
+         * @see Options#getInactiveTimeout()
+         */
+        public Builder<T> connectionTimeout(Duration inactiveTimeout) {
+            options.inactiveTimeout = inactiveTimeout;
             return this;
         }
 
@@ -471,8 +541,11 @@ public interface ObjectPool<T> {
          * @return a non-null instance
          */
         public ObjectPool<T> build() {
-            ObjectPoolImpl<T> pool = new ObjectPoolImpl<>(options);
-            return pool;
+            return create();
+        }
+
+        protected ObjectPool<T> create() {
+            return new ObjectPoolImpl<>(options);
         }
     }
 }

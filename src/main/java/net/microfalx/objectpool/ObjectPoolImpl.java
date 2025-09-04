@@ -1,20 +1,23 @@
 package net.microfalx.objectpool;
 
+import net.microfalx.lang.TimeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import static net.microfalx.lang.ArgumentUtils.requireNonNull;
+import static net.microfalx.lang.ExceptionUtils.rethrowException;
+import static net.microfalx.lang.ExceptionUtils.rethrowExceptionAndReturn;
+import static net.microfalx.lang.TimeUtils.THIRTY_SECONDS;
+import static net.microfalx.lang.TimeUtils.millisSince;
 import static net.microfalx.objectpool.ObjectPoolUtils.METRICS;
 
 /**
@@ -22,34 +25,58 @@ import static net.microfalx.objectpool.ObjectPoolUtils.METRICS;
  *
  * @param <T> the type of the pooled object
  */
-final class ObjectPoolImpl<T> implements ObjectPool<T> {
+public class ObjectPoolImpl<T> implements ObjectPool<T> {
 
     private final static Logger LOGGER = LoggerFactory.getLogger(ObjectPoolImpl.class);
 
     private static final long INITIAL_WAIT_TIME = 10;
     private static final long MAX_WAIT_TIME = 100;
 
-    private final OptionsImpl<T> options;
+    private final Options<T> options;
     private final BlockingDeque<PooledObjectImpl<T>> queue = new LinkedBlockingDeque<>();
     private final Collection<PooledObjectImpl<T>> objects = new CopyOnWriteArrayList<>();
     private final AtomicBoolean closed = new AtomicBoolean();
     private final Lock lock = new ReentrantLock();
     private final ObjectPoolMetricsImpl metrics = new ObjectPoolMetricsImpl();
+    private volatile long lastAvailableUpdate = TimeUtils.oneHourAgo();
+    private volatile boolean available = true;
 
-    ObjectPoolImpl(OptionsImpl<T> options) {
+    private static final Map<String, ObjectPoolImpl<?>> POOLS = new ConcurrentHashMap<>();
+
+    static Collection<ObjectPool<?>> getPools() {
+        return Collections.unmodifiableCollection(POOLS.values());
+    }
+
+    protected ObjectPoolImpl(Options<T> options) {
         requireNonNull(options);
         this.options = options;
+        POOLS.put(options.getId(), this);
     }
 
     @Override
-    public Options<T> getOptions() {
+    public final String getId() {
+        return options.getId();
+    }
+
+    @Override
+    public final String getName() {
+        return options.getName();
+    }
+
+    @Override
+    public final String getDescription() {
+        return options.getDescription();
+    }
+
+    @Override
+    public final Options<T> getOptions() {
         return options;
     }
 
     @Override
-    public void addObject() {
+    public final void addObject() {
         checkIfOpen();
-        METRICS.time("Add", (t) -> {
+        ADD_METRICS.time(getName(), (t) -> {
             lock.lock();
             try {
                 if (objects.size() < options.getMaximum()) {
@@ -59,7 +86,7 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
                     queue.offer(pooledObject);
                 }
             } catch (Exception e) {
-                throw new ObjectPoolException("Failed to create object with factory " + options.getFactory().getClass().getName(), e);
+                rethrowException(getOptions().getFactory().createObjectCreationException(this, e));
             } finally {
                 lock.unlock();
             }
@@ -67,11 +94,11 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
     }
 
     @Override
-    public T borrowObject() {
+    public final T borrowObject() {
         checkIfOpen();
         long startTime = System.nanoTime();
         long endTime = startTime + options.getMaximumWait().toNanos();
-        return METRICS.time("Borrow", () -> {
+        return BORROW_METRICS.time(getName(), () -> {
             long waitForAvailable = INITIAL_WAIT_TIME;
             while (System.nanoTime() < endTime) {
                 PooledObjectImpl<T> next = pollNext(waitForAvailable);
@@ -86,14 +113,14 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
                 }
                 waitForAvailable = (long) Math.max(MAX_WAIT_TIME, waitForAvailable * 1.2f);
             }
-            throw new ObjectPoolException("Timeout (" + options.getMaximumWait().getSeconds() + "s) waiting for an object");
+            return rethrowExceptionAndReturn(getOptions().getFactory().createObjectBorrowException(this, null));
         });
     }
 
     @Override
-    public void returnObject(T object) {
+    public final void returnObject(T object) {
         requireNonNull(object);
-        METRICS.time("Return", (t) -> {
+        RETURN_METRICS.time(getName(), (t) -> {
             PooledObjectImpl<T> pooledObject = find(object);
             pooledObject.changeState(PooledObject.State.RETURNING);
             deactivate(pooledObject);
@@ -103,9 +130,9 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
     }
 
     @Override
-    public void invalidateObject(T object) {
+    public final void invalidateObject(T object) {
         requireNonNull(object);
-        METRICS.time("Invalidate", (t) -> {
+        INVALIDATE_METRICS.time(getName(), (t) -> {
             PooledObjectImpl<T> pooledObject = find(object);
             pooledObject.changeState(PooledObject.State.DESTROYING);
             deactivate(pooledObject);
@@ -120,8 +147,8 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
     }
 
     @Override
-    public void clear() {
-        METRICS.time("Clear", (t) -> {
+    public final void clear() {
+        CLEAR_METRICS.time(getName(), (t) -> {
             lock.lock();
             try {
                 objects.forEach(object -> {
@@ -136,46 +163,62 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
     }
 
     @Override
-    public void close() {
+    public final void close() {
         if (closed.compareAndSet(false, true)) {
             doClose();
         }
     }
 
     @Override
-    public boolean isClosed() {
+    public final boolean isAvailable() {
+        if (millisSince(lastAvailableUpdate) < THIRTY_SECONDS) {
+            try {
+                T object = borrowObject();
+                returnObject(object);
+                available = true;
+            } catch (Exception e) {
+                available = false;
+            }
+        }
+        return available;
+    }
+
+    @Override
+    public final boolean isClosed() {
         return closed.get();
     }
 
     @Override
-    public int getSize() {
+    public final int getSize() {
         return objects.size();
     }
 
     @Override
-    public int getSize(PooledObject.State state) {
+    public final int getSize(PooledObject.State state) {
         requireNonNull(options);
         return (int) objects.stream().filter(p -> p.getState() == state).count();
     }
 
     @Override
-    public Collection<PooledObject<T>> getObjects() {
+    public final Collection<PooledObject<T>> getObjects() {
         return Collections.unmodifiableCollection(objects);
     }
 
     @Override
-    public Collection<PooledObject<T>> getObjects(PooledObject.State state) {
+    public final Collection<PooledObject<T>> getObjects(PooledObject.State state) {
         requireNonNull(options);
         return objects.stream().filter(p -> p.getState() == state).collect(Collectors.toList());
     }
 
     @Override
-    public Metrics getMetrics() {
+    public final Metrics getMetrics() {
         return metrics;
     }
 
     private void doClose() {
-        LOGGER.debug("Close object pool");
+        CLOSE_METRICS.count(getName());
+        LOGGER.debug("Close object pool {}", getName());
+        POOLS.remove(options.getId());
         for (PooledObjectImpl<T> object : objects) {
             destroyObject(object);
         }
@@ -193,12 +236,12 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
         objects.remove(object);
         object.getLock().lock();
         try {
-            LOGGER.debug("Destroy object " + object);
+            LOGGER.debug("Destroy object {}", object);
             object.changeState(PooledObject.State.DESTROYING);
             try {
                 options.getFactory().destroyObject(this, object.get());
             } catch (Exception e) {
-                LOGGER.debug("Failed to destroy object " + object, e);
+                LOGGER.atDebug().setCause(e).log("Failed to destroy object {}", object);
             } finally {
                 object.changeState(PooledObject.State.DESTROYED);
             }
@@ -233,7 +276,7 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
         try {
             ((ActivableObjectFactory<T>) options.getFactory()).deactivateObject(this, object);
         } catch (Exception e) {
-            LOGGER.warn("Failed to deactivate object " + object + ", destroy");
+            LOGGER.warn("Failed to deactivate object {}, destroy", object);
             destroyObject(object);
         }
     }
@@ -244,9 +287,16 @@ final class ObjectPoolImpl<T> implements ObjectPool<T> {
             ((ActivableObjectFactory<T>) options.getFactory()).activateObject(this, object);
             return true;
         } catch (Exception e) {
-            LOGGER.warn("Failed to activate object " + object + ", destroy");
+            LOGGER.warn("Failed to activate object {}, destroy", object);
             destroyObject(object);
             return false;
         }
     }
+
+    private static final net.microfalx.metrics.Metrics ADD_METRICS = METRICS.withGroup("Add");
+    private static final net.microfalx.metrics.Metrics BORROW_METRICS = METRICS.withGroup("Borrow");
+    private static final net.microfalx.metrics.Metrics RETURN_METRICS = METRICS.withGroup("Return");
+    private static final net.microfalx.metrics.Metrics INVALIDATE_METRICS = METRICS.withGroup("Invalidate");
+    private static final net.microfalx.metrics.Metrics CLEAR_METRICS = METRICS.withGroup("Clear");
+    private static final net.microfalx.metrics.Metrics CLOSE_METRICS = METRICS.withGroup("Close");
 }

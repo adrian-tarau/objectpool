@@ -34,4 +34,26 @@ public interface ObjectFactory<T> {
         return true;
     }
 
+    /**
+     * Creates the exception that will be thrown when object creation fails.
+     *
+     * @param pool      the pool which requested the object
+     * @param throwable the exception thrown during object creation
+     * @return a non-null instance
+     */
+    default Throwable createObjectCreationException(ObjectPool<T> pool,  Throwable throwable) {
+        return ObjectPoolUtils.createObjectCreationException(pool,"object",throwable);
+    }
+
+    /**
+     * Creates the exception that will be thrown when an object cannot be borrowed.
+     *
+     * @param pool      the pool which requested the object
+     * @param throwable the exception thrown during object creation, if any
+     * @return a non-null instance
+     */
+    default Throwable createObjectBorrowException(ObjectPool<T> pool,  Throwable throwable) {
+        return ObjectPoolUtils.createObjectBorrowException(pool,"object",throwable);
+    }
+
 }

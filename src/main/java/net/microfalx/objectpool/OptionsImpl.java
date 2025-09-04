@@ -1,10 +1,9 @@
 package net.microfalx.objectpool;
 
+import net.microfalx.lang.NamedAndTaggedIdentifyAware;
+
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.StringJoiner;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 
 import static java.time.Duration.ofMinutes;
@@ -15,13 +14,14 @@ import static java.time.Duration.ofSeconds;
  *
  * @param <T> the type of pooled objects
  */
-final class OptionsImpl<T> implements ObjectPool.Options<T> {
+public class OptionsImpl<T> extends NamedAndTaggedIdentifyAware<String> implements ObjectPool.Options<T> {
 
     int minimum;
     int maximum = 10;
     Duration timeToLiveTimeout = ofMinutes(60);
     Duration abandonedTimeout = ofMinutes(60);
     Duration inactiveTimeout = ofSeconds(60);
+    Duration connectionTimeout = ofSeconds(10);
     Duration maximumWait = ofSeconds(60);
     Duration maximumReuseTime = ofMinutes(15);
     int maximumReuseCount = Integer.MAX_VALUE;
@@ -30,63 +30,85 @@ final class OptionsImpl<T> implements ObjectPool.Options<T> {
     ObjectFactory<T> factory;
     List<ObjectPool.Node> nodes = new ArrayList<>();
 
+    public OptionsImpl() {
+        setId(UUID.randomUUID().toString());
+        setName("Unnamed");
+    }
+
+    void updateId(String id) {
+        setId(id);
+    }
+
+    void updateName(String name) {
+        setName(name);
+    }
+
+    void updateDescription(String description) {
+        setDescription(description);
+    }
+
     @Override
-    public List<ObjectPool.Node> getNodes() {
+    public final List<ObjectPool.Node> getNodes() {
         return Collections.unmodifiableList(nodes);
     }
 
     @Override
-    public int getMinimum() {
+    public final int getMinimum() {
         return minimum;
     }
 
     @Override
-    public int getMaximum() {
+    public final int getMaximum() {
         return maximum;
     }
 
     @Override
-    public Duration getTimeToLiveTimeout() {
+    public final Duration getTimeToLiveTimeout() {
         return timeToLiveTimeout;
     }
 
     @Override
-    public Duration getAbandonedTimeout() {
+    public final Duration getAbandonedTimeout() {
         return abandonedTimeout;
     }
 
     @Override
-    public Duration getInactiveTimeout() {
+    public final Duration getInactiveTimeout() {
         return inactiveTimeout;
     }
 
     @Override
-    public Duration getMaximumWait() {
+    public Duration getConnectionTimeout() {
+        return connectionTimeout;
+    }
+
+    @Override
+    public final Duration getMaximumWait() {
         return maximumWait;
     }
 
     @Override
-    public Duration getMaximumReuseTime() {
+    public final Duration getMaximumReuseTime() {
         return maximumReuseTime;
     }
 
     @Override
-    public int getMaximumReuseCount() {
+    public final int getMaximumReuseCount() {
         return maximumReuseCount;
     }
 
     @Override
-    public ObjectPool.Strategy getStrategy() {
+    public final ObjectPool.Strategy getStrategy() {
         return strategy;
     }
 
     @Override
-    public ObjectFactory<T> getFactory() {
+    public final ObjectFactory<T> getFactory() {
         return factory;
     }
 
     @Override
-    public ScheduledExecutorService getExecutor() {
+    public final ScheduledExecutorService getExecutor() {
         return executor;
     }
 

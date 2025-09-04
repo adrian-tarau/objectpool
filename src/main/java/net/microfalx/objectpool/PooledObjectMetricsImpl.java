@@ -62,4 +62,8 @@ public class PooledObjectMetricsImpl implements PooledObject.Metrics {
     void updateLastUsed(long lastUsed) {
         this.lastUsed = lastUsed;
     }
+
+    void updateLastReturned(long lastReturned) {
+        this.lastReturned = lastReturned;
+    }
 }

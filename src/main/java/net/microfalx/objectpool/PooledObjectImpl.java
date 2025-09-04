@@ -1,5 +1,7 @@
 package net.microfalx.objectpool;
 
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static net.microfalx.lang.ArgumentUtils.requireNonNull;
@@ -12,6 +14,7 @@ import static net.microfalx.lang.ArgumentUtils.requireNonNull;
  */
 final class PooledObjectImpl<T> implements PooledObject<T> {
 
+    private final String id = UUID.randomUUID().toString();
     private final ObjectPool<T> owner;
     private final T object;
     private final PooledObjectMetricsImpl metrics;
@@ -25,6 +28,16 @@ final class PooledObjectImpl<T> implements PooledObject<T> {
         this.owner = owner;
         this.object = object;
         this.metrics = new PooledObjectMetricsImpl();
+    }
+
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    @Override
+    public String getName() {
+        return object.toString();
     }
 
     @Override
@@ -49,6 +62,17 @@ final class PooledObjectImpl<T> implements PooledObject<T> {
 
     void changeState(State state) {
         this.state = state;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof PooledObjectImpl<?> that)) return false;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
     }
 
     ReentrantLock getLock() {

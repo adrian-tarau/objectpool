@@ -25,6 +25,8 @@ class ObjectPoolImplTest {
         ObjectPool.Options<Integer> options = objectPool.getOptions();
         assertNotNull(options);
         assertSame(IntegerObjectFactory.class, options.getFactory().getClass());
+        assertNotNull(options.getId());
+        assertEquals("Unnamed", options.getName());
         assertEquals(0, options.getMinimum());
         assertEquals(10, options.getMaximum());
         assertEquals(ObjectPool.Strategy.LIFO, options.getStrategy());
@@ -40,6 +42,7 @@ class ObjectPoolImplTest {
     @Test
     void getCustomOptions() {
         objectPool = ObjectPool.create(new IntegerObjectFactory()).minimum(2).maximum(15)
+                .id("pool1").name("Pool 1")
                 .node(URI.create("tcp://localhost"))
                 .strategy(ObjectPool.Strategy.FIFO)
                 .timeToLiveTimeout(ofMinutes(30)).abandonedTimeout(ofMinutes(40)).inactiveTimeout(ofSeconds(50))
@@ -48,6 +51,8 @@ class ObjectPoolImplTest {
                 .build();
         ObjectPool.Options<Integer> options = objectPool.getOptions();
         assertNotNull(options);
+        assertEquals("pool1", options.getId());
+        assertEquals("Pool 1", options.getName());
         assertEquals(1, options.getNodes().size());
         assertEquals(2, options.getMinimum());
         assertEquals(15, options.getMaximum());

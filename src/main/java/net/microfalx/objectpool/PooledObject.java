@@ -1,5 +1,8 @@
 package net.microfalx.objectpool;
 
+import net.microfalx.lang.Identifiable;
+import net.microfalx.lang.Nameable;
+
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Optional;
@@ -9,7 +12,7 @@ import java.util.Optional;
  *
  * @param <T> the type of the pooled object
  */
-public interface PooledObject<T> {
+public interface PooledObject<T> extends Identifiable<String>, Nameable {
 
     /**
      * Returns the pool which owns this pooled object.
