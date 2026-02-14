@@ -9,7 +9,7 @@ import java.time.ZonedDateTime;
 import java.util.Optional;
 
 import static java.time.ZoneId.systemDefault;
-import static net.microfalx.lang.ExceptionUtils.getRootCauseMessage;
+import static net.microfalx.lang.ExceptionUtils.getRootCauseDescription;
 
 public class ObjectPoolUtils {
 
@@ -53,7 +53,7 @@ public class ObjectPoolUtils {
      */
     public static <T> Throwable createObjectCreationException(ObjectPool<T> pool, String type, Throwable throwable) {
         return new ObjectPoolException("Failed to create " + type + " in pool '" + ObjectUtils.getDescription(pool)
-                + "', root cause: " + getRootCauseMessage(throwable), throwable);
+                + "', root cause: " + getRootCauseDescription(throwable), throwable);
     }
 
     /**
